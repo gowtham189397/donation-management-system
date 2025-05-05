@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define CATEGORY_COUNT 3
+
+char *categories[CATEGORY_COUNT] = {"Food", "Clothes", "Money"};
+
+typedef struct Donor {
+    char name[50];
+    char contact[20];
+    int quantity;
+    struct Donor *next;
+} Donor;
+
+Donor *donorLists[CATEGORY_COUNT] = {NULL};
+
+// Create a new donor
+Donor* createDonor(char *name, char *contact, int quantity) {
+    Donor *newDonor = (Donor*)malloc(sizeof(Donor));
+    strcpy(newDonor->name, name);
+    strcpy(newDonor->contact, contact);
+    newDonor->quantity = quantity;
+    newDonor->next = NULL;
+    return newDonor;
+}
+
+// Save donor to file
+void saveDonorToFile(char *name, char *contact, int quantity, char *category, char *unit) {
+    FILE *file = fopen("donors.txt", "a");
+    if (file == NULL) {
+        printf("❌ Error opening file for writing.\n");
+        return;
+    }
+    fprintf(file, "%s,%s,%d,%s %s\n", name, contact, quantity, category, unit);
+    fclose(file);
+}
+
+// Add donor
+void addDonor(int categoryIndex, char *name, char *contact, int quantity) {
+    Donor *newDonor = createDonor(name, contact, quantity);
+    newDonor->next = donorLists[categoryIndex];
+    donorLists[categoryIndex] = newDonor;
+
+    // Determine unit
+    char unit[10] = "";
+    if (categoryIndex == 0) strcpy(unit, "kg");
+    else if (categoryIndex == 1) strcpy(unit, "pairs");
+    else strcpy(unit, "amount");
+
+    // Save to file
+    saveDonorToFile(name, contact, quantity, categories[categoryIndex], unit);
+    printf("✅ Donor added to %s category and saved to file.\n", categories[categoryIndex]);
+}
+
+// Display donors
+void displayDonors() {
+    int totalMoneyDonations = 0;
+
+    for (int i = 0; i < CATEGORY_COUNT; i++) {
+        printf("\n📂 Category: %s\n", categories[i]);
+        Donor *current = donorLists[i];
+        if (current == NULL) {
+            printf("  No donors yet.\n");
+        } else {
+            while (current != NULL) {
+                char unit[10] = "";
+                if (i == 0) strcpy(unit, "kg");
+                else if (i == 1) strcpy(unit, "pairs");
+
+                if (i == 2) {
+                    printf("  Name: %s | Contact: %s | Amount: %d\n",
+                        current->name, current->contact, current->quantity);
+                    totalMoneyDonations += current->quantity;
+                } else {
+                    printf("  Name: %s | Contact: %s | Quantity: %d %s\n",
+                        current->name, current->contact, current->quantity, unit);
+                }
+
+                current = current->next;
+            }
+        }
+    }
+
+    printf("\n💰 Total Donations in Money Category: %d\n", totalMoneyDonations);
+}
+
+// Main menu
+int main() {
+    int choice;
+    char name[50], contact[20];
+    int quantity, categoryIndex;
+
+    do {
+        printf("\n=== Donation Management System ===\n");
+        printf("1. Add Donor\n");
+        printf("2. Display All Donors\n");
+        printf("3. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // clear buffer
+
+        switch (choice) {
+            case 1:
+                printf("\nSelect Category:\n");
+                for (int i = 0; i < CATEGORY_COUNT; i++) {
+                    printf("%d. %s\n", i + 1, categories[i]);
+                }
+                printf("Enter category number: ");
+                scanf("%d", &categoryIndex);
+                getchar();
+
+                if (categoryIndex < 1 || categoryIndex > CATEGORY_COUNT) {
+                    printf("❌ Invalid category.\n");
+                    break;
+                }
+
+                printf("Enter donor name: ");
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = 0;
+
+                printf("Enter contact number: ");
+                fgets(contact, sizeof(contact), stdin);
+                contact[strcspn(contact, "\n")] = 0;
+
+                printf("Enter quantity donated: ");
+                scanf("%d", &quantity);
+
+                addDonor(categoryIndex - 1, name, contact, quantity);
+                break;
+
+            case 2:
+                displayDonors();
+                break;
+
+            case 3:
+                printf("👋 Exiting Donation Management System. Goodbye!\n");
+                break;
+
+            default:
+                printf("❗ Invalid choice. Try again.\n");
+        }
+
+    } while (choice != 3);
+
+    return 0;
+}
